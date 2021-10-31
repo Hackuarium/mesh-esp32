@@ -1,0 +1,84 @@
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet">
+</head>
+
+<body style="zoom: 1.5">
+  <h1>Control and settings</h1>
+  Nb rows: <input data-label="I" type="number" oninput="sendCommand('I'+value)" min="0" max="255"></input><br>
+  Nb led per rows: <input data-label="J" type="number" oninput="sendCommand('J'+value)" min="0" max="255"></input><br>
+  <button class="border-2 border-black" onmousedown="sendCommand('h')">Help</button>
+  <button class="border-2 border-black" onmousedown="sendCommand('s')">Settings</button>
+  <h1>Advanced</h1>
+  <form>
+    <input type="text" class="border-2 border-black" name="command"> <input type="submit"
+      onclick="event.preventDefault(); sendCommand(this.form.command.value);">
+  </form>
+
+  <textarea class="border-2 border-black" id="result" rows="10" cols="40"> </textarea>
+  <script>
+//    const server = "http://cube4.local/";
+    const server = "/";
+    let timerId = undefined;
+    let lastEvent = Date.now();
+    let throttle = 200;
+    async function sendSlowlyCommand(command) {
+      clearTimeout(timerId);
+      if ((Date.now() - lastEvent) > throttle) {
+        lastEvent = Date.now();
+        sendCommand(command);
+      } else {
+        timerId = setTimeout(() => {
+          lastEvent = Date.now();
+          sendCommand(command);
+        }, throttle - (Date.now() - lastEvent));
+      }
+    }
+    async function sendCommand(command) {
+      console.log(command);
+      if (command.match(/^[A-Z][0-9]+$/)) {
+        let elements = document.querySelectorAll(`[data-label=${command.substring(0, 1)}]`);
+        for (let element of elements) {
+          element.value = command.substring(1);
+        }
+      }
+
+      const response = await fetch(
+        server + "command" + "?value=" + encodeURIComponent(command)
+      );
+      const result = await response.text();
+      document.getElementById("result").value = result;
+      return result;
+    }
+    async function reloadSettings() {
+      let result = await sendCommand('uc');
+      // TODO we could check the checkDigit ...
+      for (let i = 0; i < Math.min(result.length, 104); i = i + 4) {
+        let code = String.fromCharCode(65 + i / 4);
+        let value = parseInt(result.substring(i, i + 4), 16);
+        let elements = document.querySelectorAll(`[data-label="${code}"]:not([type="radio"])`);
+        for (let element of elements) {
+          element.value = value;
+        }
+        // radio button
+        elements = document.querySelectorAll(`[data-label="${code}"][value="${value}"]`);
+        for (let element of elements) {
+          element.setAttribute('checked', 'checked');
+        }
+      }
+      // color button (in KLM)
+      let elements = document.querySelectorAll(`[data-label="KLM"]`);
+      for (let element of elements) {
+        element.value = "#" + result.substr(42, 2) + result.substr(46, 2) + result.substr(50, 2);
+        console.log(element.value);
+      }
+      console.log(result);
+    }
+    reloadSettings();
+  </script>
+</body>
+
+</html>
