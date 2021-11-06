@@ -1,68 +1,70 @@
 #include "./params.h"
-#include <WiFiClient.h>
 #include <painlessMesh.h>
+#include <AsyncMqttClient.h>
+#include <WiFiClient.h>
 
 
-char ssid[20];
-char password[20];
-
-#define   MESH_PREFIX     "whateverYouLike"
-#define   MESH_PASSWORD   "somethingSneaky"
+#define   MESH_PREFIX     "mesh"
+#define   MESH_PASSWORD   "password"
 #define   MESH_PORT       5555
 
+#define   STATION_SSID     "ChemExper"
+#define   STATION_PASSWORD ""
+
+#define HOSTNAME "MQTT_Bridge"
+
+// Prototypes
+void meshReceivedCallback( const uint32_t &from, const String &msg );
+void mqttCallback(char* topic, byte* payload, unsigned int length);
+
+IPAddress getlocalIP();
+
+IPAddress myIP(0,0,0,0);
+IPAddress mqttBroker( 31,14,135,129);
+
+painlessMesh  mesh;
+WiFiClient wifiClient;
+
+AsyncMqttClient mqttMeshClient;
+
+void onMqttPublish(uint16_t packetId);
+void onMqttSubscribe(uint16_t packetId, uint8_t qos);
+void onMqttUnsubscribe(uint16_t packetId);
+void onMqttConnect(bool sessionPresent);
+void onMqttDisconnect(AsyncMqttClientDisconnectReason reason);
+void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total);
 
 
 void TaskMesh(void* pvParameters) {
-  getParameter("wifi.ssid", ssid);
-  getParameter("wifi.password",password);
-  Serial.print("Trying to connect to ");
-  Serial.println(ssid);
-  Serial.print("Using password ");
-  Serial.println(password);
+   mesh.setDebugMsgTypes( ERROR | STARTUP | CONNECTION );  // set before init() so that you can see startup messages
 
-if (false) { //  access point
-Serial.println("Starting wifi server");
- WiFi.mode(WIFI_AP);
- esp_wifi_set_protocol( WIFI_IF_AP, WIFI_PROTOCOL_LR );
-  WiFi.softAP(ssid, password);
+  // Channel set to 6. Make sure to use the same channel for your mesh and for you other
+  // network (STATION_SSID)
+  mesh.init( MESH_PREFIX, MESH_PASSWORD, MESH_PORT, WIFI_AP_STA, 6 );
+  mesh.onReceive(&meshReceivedCallback);
 
-  IPAddress IP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(IP);
+  mesh.stationManual(STATION_SSID, STATION_PASSWORD);
+  mesh.setHostname(HOSTNAME);
+
+  // Bridge node, should (in most cases) be a root node. See [the wiki](https://gitlab.com/painlessMesh/painlessMesh/wikis/Possible-challenges-in-mesh-formation) for some background
+  mesh.setRoot(true);
+  // This node and all other nodes should ideally know the mesh contains a root, so call this on all nodes
+  mesh.setContainsRoot(true);
 
 
-  while (true) {
-    vTaskDelay(1000);
-     //  setParameter(PARAM_WIFI_RSSI, WiFi.RSSI());
-  }
-} else {
-	 WiFi.mode(WIFI_STA);
-	  esp_wifi_set_protocol( WIFI_IF_STA, WIFI_PROTOCOL_LR );
-  WiFi.begin(ssid, password);
-
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED) {
-    vTaskDelay(500);
-    Serial.print(".");
-  }
-
-    Serial.println("");
-  Serial.print("Connected to ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  mqttMeshClient.setServer("mqtt.hackuarium.org", 1883);
+  mqttMeshClient.connect();
 
   while (true) {
-    vTaskDelay(1000);
-      if (WiFi.status() != WL_CONNECTED) {
-        WiFi.disconnect();
-        vTaskDelay(5000);
-        WiFi.reconnect();
-      }
-       setParameter(PARAM_WIFI_RSSI, WiFi.RSSI());
+ mesh.update();
+
+  if(myIP != getlocalIP()){
+    myIP = getlocalIP();
+    Serial.println("My IP is " + myIP.toString());
+
+
   }
-}
- 
+  } 
 }
 
 void taskMesh() {
@@ -74,4 +76,53 @@ void taskMesh() {
                           2,  // Priority, with 3 (configMAX_PRIORITIES - 1)
                               // being the highest, and 0 being the lowest.
                           NULL, 1);
+}
+
+
+void meshReceivedCallback( const uint32_t &from, const String &msg ) {
+  Serial.printf("bridge: Received from %u msg=%s\n", from, msg.c_str());
+  String topic = "painlessMesh/from/" + String(from);
+   mqttMeshClient.publish(topic.c_str(), 0, true,  msg.c_str());
+}
+
+void mqttCallback(char* topic, uint8_t* payload, unsigned int length) {
+  char* cleanPayload = (char*)malloc(length+1);
+  memcpy(cleanPayload, payload, length);
+  cleanPayload[length] = '\0';
+  String msg = String(cleanPayload);
+  free(cleanPayload);
+
+  String targetStr = String(topic).substring(16);
+
+  if(targetStr == "gateway")
+  {
+    if(msg == "getNodes")
+    {
+      auto nodes = mesh.getNodeList(true);
+      String str;
+      for (auto &&id : nodes)
+        str += String(id) + String(" ");
+      mqttMeshClient.publish("painlessMesh/from/gateway",  0, true, str.c_str());
+    }
+  }
+  else if(targetStr == "broadcast") 
+  {
+    mesh.sendBroadcast(msg);
+  }
+  else
+  {
+    uint32_t target = strtoul(targetStr.c_str(), NULL, 10);
+    if(mesh.isConnected(target))
+    {
+      mesh.sendSingle(target, msg);
+    }
+    else
+    {
+      mqttMeshClient.publish("painlessMesh/from/gateway", 0, true, "Client not connected!");
+    }
+  }
+}
+
+IPAddress getlocalIP() {
+  return IPAddress(mesh.getStationIP());
 }
