@@ -56,7 +56,22 @@ void TaskMesh(void* pvParameters) {
   mqttMeshClient.connect();
 
   while (true) {
-   mesh.update();
+    mesh.update();
+    auto nodes = mesh.getNodeList(true);
+    String str;
+    for (auto &&id : nodes)
+      str += String(id) + String(" ");
+    mqttMeshClient.publish("painlessMesh/from/gateway",  0, true, str.c_str());
+    static int waitA = millis();
+    static uint16_t i = 0;
+    if(i > 6000){
+      Serial.println("Node list:" + String(str.c_str()));
+      i = 0;
+    }
+    if (waitA != millis()){
+      i++;
+    }
+   
 
   if(myIP != getlocalIP()){
     myIP = getlocalIP();
@@ -64,7 +79,8 @@ void TaskMesh(void* pvParameters) {
 
 
   }
-  mqttMeshClient.publish("1",0,true,"hello", 1U);
+    
+  mqttMeshClient.publish("1",0,true,"hello");
   } 
 }
 
