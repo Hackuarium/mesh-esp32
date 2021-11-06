@@ -1,3 +1,5 @@
+#ifndef MESH
+
 #include <NTPClient.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -112,3 +114,5 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
   Serial.println(sizeof(*payload));
   Serial.println(payload);
 }
+
+#endif

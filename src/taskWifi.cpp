@@ -1,3 +1,6 @@
+
+ifndef MESH
+
 #include "./params.h"
 #include <WiFi.h>
 #include <esp_wifi.h>
@@ -68,3 +71,5 @@ void taskWifi() {
                               // being the highest, and 0 being the lowest.
                           NULL, 1);
 }
+
+#endif
