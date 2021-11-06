@@ -25,3 +25,8 @@ extern int16_t parameters[MAX_PARAM];
 #define PARAM_MESH_CONN_2	   54
 #define PARAM_MESH_CONN_25	   77
 
+
+// Define MQTT Client or Bridge
+#define PARAM_MESH_CLIENT           1
+
+#define MESH 1

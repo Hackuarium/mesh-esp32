@@ -4,6 +4,8 @@
 #include "./params.h"
 #include "taskNTPD.h"
 
+
+
 void taskBlink();
 void taskSerial();
 void taskWebserver();
@@ -13,7 +15,12 @@ void taskLora();
 void taskMDNS();
 void taskWifi();
 //void taskMQTT();
+#ifdef PARAM_MESH_CLIENT
+void taskMeshClient();
+#elif
 void taskMesh();
+#endif
+
 void taskSI7021();
 //void taskOneWire();
 void taskOLEDscreen();
@@ -33,7 +40,11 @@ void setup() {
 //  taskMDNS();
  // taskWifi();
  // taskMQTT();
+  #ifdef PARAM_MESH_CLIENT
+  taskMeshClient();
+  #elif
   taskMesh();
+  #endif
   taskBlink();
 }
 

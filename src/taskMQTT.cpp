@@ -1,4 +1,3 @@
-#ifndef MESH
 
 #include <NTPClient.h>
 #include <WiFi.h>
@@ -6,6 +5,8 @@
 #include "./common.h"
 #include <AsyncMqttClient.h>
 #include "./params.h"
+
+#ifndef MESH
 
 AsyncMqttClient mqttClient;
 

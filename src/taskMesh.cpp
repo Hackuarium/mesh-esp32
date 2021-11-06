@@ -3,6 +3,8 @@
 #include <AsyncMqttClient.h>
 #include <WiFiClient.h>
 
+#ifdef MESH
+#ifndef PARAM_MESH_CLIENT
 
 #define   MESH_PREFIX     "mesh"
 #define   MESH_PASSWORD   "password"
@@ -57,7 +59,7 @@ void TaskMesh(void* pvParameters) {
   mesh.setHostname(HOSTNAME);
 
   // Bridge node, should (in most cases) be a root node. See [the wiki](https://gitlab.com/painlessMesh/painlessMesh/wikis/Possible-challenges-in-mesh-formation) for some background
-  mesh.setRoot(true);
+  mesh.setRoot(false);
   // This node and all other nodes should ideally know the mesh contains a root, so call this on all nodes
   mesh.setContainsRoot(true);
 
@@ -169,3 +171,6 @@ void onMqttPublish(uint16_t packetId) {
   Serial.print("  packetId: ");
   Serial.println(packetId);
 }
+
+#endif
+#endif

@@ -1,9 +1,10 @@
 
-ifndef MESH
 
 #include "./params.h"
 #include <WiFi.h>
 #include <esp_wifi.h>
+
+#ifndef MESH
 
 char ssid[20];
 char password[20];
