@@ -15,12 +15,13 @@ void taskWifi();
 //void taskMQTT();
 void taskMesh();
 void taskSI7021();
-void taskOneWire();
+//void taskOneWire();
 void taskOLEDscreen();
 
 void setup() {
   Serial.begin(115200);  // only for debug purpose
   setupParameters();
+  Serial.println("Setup Serial:");
   taskSerial();
  // taskWebserver();
  // taskNTPD();

@@ -9,7 +9,7 @@
 #define   MESH_PORT       5555
 
 #define   STATION_SSID     "ChemExper"
-#define   STATION_PASSWORD ""
+#define   STATION_PASSWORD "oceane3marine"
 
 #define HOSTNAME "MQTT_Bridge"
 
@@ -56,7 +56,7 @@ void TaskMesh(void* pvParameters) {
   mqttMeshClient.connect();
 
   while (true) {
- mesh.update();
+   mesh.update();
 
   if(myIP != getlocalIP()){
     myIP = getlocalIP();
@@ -64,6 +64,7 @@ void TaskMesh(void* pvParameters) {
 
 
   }
+  mqttMeshClient.publish("1",0,true,"hello", 1U);
   } 
 }
 
