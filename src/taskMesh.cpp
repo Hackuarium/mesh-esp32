@@ -20,10 +20,14 @@ void mqttCallback(char* topic, byte* payload, unsigned int length);
 IPAddress getlocalIP();
 
 IPAddress myIP(0,0,0,0);
-IPAddress mqttBroker( 31,14,135,129);
 
 painlessMesh  mesh;
 WiFiClient wifiClient;
+
+char ssid[20];
+char password[20];
+char broker[20];
+char topic[20];
 
 AsyncMqttClient mqttMeshClient;
 
@@ -36,6 +40,12 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
 
 
 void TaskMesh(void* pvParameters) {
+
+  getParameter("wifi.ssid", ssid);
+  getParameter("wifi.password",password);
+  getParameter("mqtt.broker", broker);
+  getParameter("mqtt.topic", topic);
+
    mesh.setDebugMsgTypes( ERROR | STARTUP | CONNECTION );  // set before init() so that you can see startup messages
 
   // Channel set to 6. Make sure to use the same channel for your mesh and for you other
@@ -43,7 +53,7 @@ void TaskMesh(void* pvParameters) {
   mesh.init( MESH_PREFIX, MESH_PASSWORD, MESH_PORT, WIFI_AP_STA, 6 );
   mesh.onReceive(&meshReceivedCallback);
 
-  mesh.stationManual(STATION_SSID, STATION_PASSWORD);
+  mesh.stationManual(ssid, password);
   mesh.setHostname(HOSTNAME);
 
   // Bridge node, should (in most cases) be a root node. See [the wiki](https://gitlab.com/painlessMesh/painlessMesh/wikis/Possible-challenges-in-mesh-formation) for some background
@@ -52,8 +62,10 @@ void TaskMesh(void* pvParameters) {
   mesh.setContainsRoot(true);
 
 
-  mqttMeshClient.setServer("mqtt.hackuarium.org", 1883);
+  mqttMeshClient.setServer(broker, 1883);
   mqttMeshClient.connect();
+  mqttMeshClient.onConnect(onMqttConnect);
+  mqttMeshClient.onPublish(onMqttPublish);
 
   while (true) {
     mesh.update();
@@ -76,11 +88,10 @@ void TaskMesh(void* pvParameters) {
   if(myIP != getlocalIP()){
     myIP = getlocalIP();
     Serial.println("My IP is " + myIP.toString());
-
-
   }
-    
-  mqttMeshClient.publish("1",0,true,"hello");
+
+       uint16_t packetIdPub1 = mqttMeshClient.publish("test/esp", 0, true, "Hello 123");     
+     vTaskDelay(10 * 1000);
   } 
 }
 
@@ -142,4 +153,19 @@ void mqttCallback(char* topic, uint8_t* payload, unsigned int length) {
 
 IPAddress getlocalIP() {
   return IPAddress(mesh.getStationIP());
+}
+
+void onMqttConnect(bool sessionPresent) {
+  Serial.println("Connected to MQTT.");
+  Serial.print("Session present: ");
+  Serial.println(sessionPresent);
+  // uint16_t packetIdSub = mqttClient.subscribe(topic, 2);
+  // Serial.print("Subscribing at QoS 2, packetId: ");
+  // Serial.println(packetIdSub);
+}
+
+void onMqttPublish(uint16_t packetId) {
+  Serial.println("Publish acknowledged.");
+  Serial.print("  packetId: ");
+  Serial.println(packetId);
 }
