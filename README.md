@@ -35,6 +35,21 @@ app1,app,ota_1,0x150000,1280K,
 spiffs,data,spiffs,0x290000,1472K,
 ```
 
+## OsX
+
+You may encounter a problem uploading the file to ESP32 that uses the new chip USB/UART CH9102x.
+
+`A fatal error occurred: Failed to write to target RAM (result was 01070000)`
+
+You may find more information about solving this problem at:
+
+https://blog.squix.org/2021/08/ch9102-driver-issues-failed-to-write-to-target-ram.html
+
+It is related to those issues:
+
+- https://github.com/espressif/esptool/issues/280
+- https://github.com/Xinyuan-LilyGO/LilyGo-T-Call-SIM800/issues/139
+
 ## FS
 
 Create a folder at the first level called `data`.
@@ -50,6 +65,7 @@ https://github.com/me-no-dev/ESPAsyncWebServer#using-platformio
 ## Searching libraries
 
 https://platformio.org/lib/search?query=si7021
+
 ## OTA
 
 pio run -t upload --upload-port square.local
