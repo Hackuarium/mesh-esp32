@@ -21,6 +21,7 @@
       "tuple": "cpp",
       "type_traits": "cpp",
       "typeinfo": "cpp",
-      "cstdlib": "cpp"
+      "cstdlib": "cpp",
+      "ssd1306wire.h": "c"
     }
 }

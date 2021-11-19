@@ -1,6 +1,10 @@
+
+
 #include "./params.h"
 #include <WiFi.h>
 #include <esp_wifi.h>
+
+#ifndef MESH
 
 char ssid[20];
 char password[20];
@@ -68,3 +72,5 @@ void taskWifi() {
                               // being the highest, and 0 being the lowest.
                           NULL, 1);
 }
+
+#endif

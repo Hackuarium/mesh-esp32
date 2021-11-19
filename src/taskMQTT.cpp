@@ -1,9 +1,12 @@
+
 #include <NTPClient.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include "./common.h"
 #include <AsyncMqttClient.h>
 #include "./params.h"
+
+#ifndef MESH
 
 AsyncMqttClient mqttClient;
 
@@ -112,3 +115,5 @@ void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties 
   Serial.println(sizeof(*payload));
   Serial.println(payload);
 }
+
+#endif

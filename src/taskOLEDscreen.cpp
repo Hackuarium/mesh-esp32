@@ -1,6 +1,8 @@
 #include "./common.h"
 #include "./params.h"
 #include "SSD1306.h"   // OLED screen model library
+// Basic Config
+#include <esp_spi_flash.h> // needed for reading ESP32 chip attributes
 
 
 // SSD OLED pin definitions
@@ -16,6 +18,89 @@
 // Create OLED instance "display"
 SSD1306 display(0x3c, 21, 22);
 
+static int dp_row = 0, dp_col = 0;
+
+void dp_drawPage() {
+
+  // write display content to display buffer
+  // nextpage = true -> flip 1 page
+
+  static uint8_t DisplayPage = 0;
+  char timeState;
+
+  // cursor home
+  display.clear();
+
+  // line 1/2: pax counter
+  // display number of unique macs total Wifi + BLE
+    // ---------- page 0: parameters overview ----------
+
+
+    
+    // line 3: wifi + bluetooth counters
+    // WIFI:abcde BLTH:abcde
+
+#if ((WIFICOUNTER) && (BLECOUNTER))
+    if (cfg.wifiscan)
+      dp_printf("WIFI:%-5d", count_from_libpax.wifi_count);
+    else
+      dp_printf("WIFI:off");
+    if (cfg.blescan)
+#if (COUNT_ENS)
+      if (cfg.enscount)
+        dp_printf(" CWA:%-5d", cwa_report());
+      else
+#endif
+        dp_printf("BLTH:%-5d", count_from_libpax.ble_count);
+    else
+      dp_printf(" BLTH:off");
+#elif ((WIFICOUNTER) && (!BLECOUNTER))
+    if (cfg.wifiscan)
+      dp_printf("WIFI:%-5d", count_from_libpax.wifi_count);
+    else
+      dp_printf("WIFI:off");
+#elif ((!WIFICOUNTER) && (BLECOUNTER))
+    if (cfg.blescan)
+      dp_printf("BLTH:%-5d", count_from_libpax.ble_count);
+#if (COUNT_ENS)
+    if (cfg.enscount)
+      dp_printf("(CWA:%d)", cwa_report());
+    else
+#endif
+      dp_printf("BLTH:off");
+#else
+    //dp_printf("Sniffer disabled");
+#endif
+    //dp_println();
+
+    // line 4: Battery + GPS status + Wifi channel
+    // B:a.bcV Sats:ab ch:ab
+#if (defined BAT_MEASURE_ADC || defined HAS_PMU || defined HAS_IP5306)
+    if (batt_level == 0)
+      dp_printf("No batt ");
+    else
+      dp_printf("B:%3d%%  ", batt_level);
+#else
+    //dp_printf("       ");
+#endif
+  
+  // line 5: RSSI limiter + free memory
+  // RLIM:abcd  Mem:abcdKB
+  display.clear();
+    // line 7: LMIC status
+    // yyyyyyyyyyyyy xx SFab
+
+#if (HAS_LORA)
+    // LMiC event display
+    dp_printf("%-16s ", lmic_event_msg);
+    // LORA datarate, display inverse if ADR disabled
+    dp_setFont(MY_FONT_SMALL, !cfg.adrmode);
+    dp_printf("%-4s", getSfName(updr2rps(LMIC.datarate)));
+    dp_setFont(MY_FONT_SMALL, 0);
+#endif // HAS_LORA
+
+} // dp_drawPage
+
 void TaskOLEDscreen(void* pvParameters) {
   (void)pvParameters;
   // Initialize screen
@@ -24,22 +109,32 @@ void TaskOLEDscreen(void* pvParameters) {
   display.clear();
   display.setTextAlignment(TEXT_ALIGN_LEFT);
   display.setFont(ArialMT_Plain_16);
-  display.setFont(ArialMT_Plain_24);
+  //display.setFont(ArialMT_Plain_24);
 
    while (true){
-	   if (false) {
-  String p_temperature = String(getParameter(PARAM_TEMPERATURE)/100.0);
-  String p_humidity = String(getParameter(PARAM_HUMIDITY)/100.0);
-  String p_temperature2 = String(getParameter(PARAM_TEMPERATURE_EXT)/100.0);
-  String p_temperature3 = String(getParameter(PARAM_TEMPERATURE_EXT2)/100.0);
-  display.clear();
-  display.drawString(0 , 0 , p_temperature + "°C");
-  display.drawStringMaxWidth(0 , 20 , 128, p_humidity +"%");
-  display.drawString(0 , 40 , p_temperature2 + "°C " + p_temperature3 + "°C");
+    esp_chip_info_t chip_info;
+    esp_chip_info(&chip_info);
+    display.clear();
+	  if (false) {
+      String p_temperature = String(getParameter(PARAM_TEMPERATURE)/100.0);
+      String p_humidity = String(getParameter(PARAM_HUMIDITY)/100.0);
+      String p_temperature2 = String(getParameter(PARAM_TEMPERATURE_EXT)/100.0);
+      String p_temperature3 = String(getParameter(PARAM_TEMPERATURE_EXT2)/100.0);
+      display.clear();
+      display.drawString(0 , 0 , p_temperature + "°C");
+      display.drawStringMaxWidth(0 , 20 , 128, p_humidity +"%");
+      display.drawString(0 , 40 , p_temperature2 + "°C " + p_temperature3 + "°C");
 	   }
 
-  display.clear();
-  display.drawString(0, 0,  String(getParameter(PARAM_WIFI_RSSI))+" dB"); 
+    display.drawString(0, 0,"ESP32 cores " + String(chip_info.cores));
+    //display.drawString(0, 18, "Chip Rev. " + String(chip_info.revision));
+    String a = (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "";
+    String b = (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "";
+    display.drawString(0, 16, "WiFi" + a + b);
+    String c = (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "int." : "ext.";
+    display.drawString(0, 34, String(spi_flash_get_chip_size() / (1024 * 1024)) + "MB " + c + " Flash");
+  //display.clear();
+  //display.drawString(0, 0,  String(getParameter(PARAM_WIFI_RSSI))+" dB"); 
   
   display.display();  
   vTaskDelay(1000);
