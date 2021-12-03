@@ -1,6 +1,5 @@
 #include "./common.h"
 
-
 void TaskBlink(void* pvParameters) {
   (void)pvParameters;
 
@@ -8,9 +7,9 @@ void TaskBlink(void* pvParameters) {
 
   while (true) {
     digitalWrite(LED_BUILTIN, HIGH);
-    vTaskDelay(1000);
+    vTaskDelay(100);
     digitalWrite(LED_BUILTIN, LOW);
-    vTaskDelay(1000);
+    vTaskDelay(100);
   }
 }
 

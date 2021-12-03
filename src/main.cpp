@@ -4,8 +4,6 @@
 #include "./params.h"
 #include "taskNTPD.h"
 
-
-
 void taskBlink();
 void taskSerial();
 void taskWebserver();
@@ -14,15 +12,15 @@ void taskOTA();
 void taskLora();
 void taskMDNS();
 void taskWifi();
-//void taskMQTT();
+// void taskMQTT();
 #ifdef PARAM_MESH_CLIENT
 void taskMeshClient();
-#elif
+#else
 void taskMesh();
 #endif
 
 void taskSI7021();
-//void taskOneWire();
+// void taskOneWire();
 void taskOLEDscreen();
 
 void setup() {
@@ -30,21 +28,21 @@ void setup() {
   setupParameters();
   Serial.println("Setup Serial:");
   taskSerial();
- // taskWebserver();
- // taskNTPD();
- // taskLora();
- // taskSI7021();
- // taskOneWire();
+  // taskWebserver();
+  // taskNTPD();
+  // taskLora();
+  // taskSI7021();
+  // taskOneWire();
   taskOLEDscreen();
- // taskOTA();
-//  taskMDNS();
- // taskWifi();
- // taskMQTT();
-  #ifdef PARAM_MESH_CLIENT
+  // taskOTA();
+  //  taskMDNS();
+  // taskWifi();
+  // taskMQTT();
+#ifdef PARAM_MESH_CLIENT
   taskMeshClient();
-  #elif
+#elif
   taskMesh();
-  #endif
+#endif
   taskBlink();
 }
 
